@@ -1,0 +1,36 @@
+# 基诺部署相关内容
+
+## v1.0.0
+- 环境：Linux RHEL 7.6.1810
+- 网络：无网络，应用包需要在有网环境下载
+- 全自动内核优化
+  - **optimize.system.tcp.sh** 推荐**非**数据类环境使用
+  - **optimize.system.db.sh** 推荐数据类环境使用
+  - jemalloc 所有环境推荐安装
+- 包含如下环境的一键安装
+  - LVS
+  - nginx
+  - java（JDK 1.8\_211）
+  - mysql（5.7.26）
+  - redis（5.0.5）
+  - zookeeper（3.5.5）
+  - ElasticSearch（7.1.1）
+- 包含如下工具一键安装
+  - wrk 轻量级高效压测工具
+  - sysbench 资源性能测试工具
+- 包含如下功能脚本
+  - MySQL从库自动化创建
+  - 系统参数查阅
+  - Color Tail
+  - 通用网关重启
+- 包含ansible相关脚本
+  - 主机列表 `inventory`
+  - 工作脚本 `playbook`
+    - **upload_ssh_keys.yml** 增加授信
+    - **run_tools.yml** 推送功能脚本及执行，主要将前述内容推送至指定主机
+    - **reset_yum_repo.yml** 重置YUM到内部源，并清理无用源
+    - **ntp.yml** 同步时钟
+    - **deploy_*.yml** 业务发布
+    - **init_server.yml** 安装新主机环境
+  - 发布脚本 `deploy/*.sh` 各个服务发布脚本
+  - 环境安装 `setup/*.sh` 各种类型环境安装

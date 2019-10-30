@@ -1,0 +1,35 @@
+---
+- hosts: "{{ group }}"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: "link timezone"
+      shell: ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+      args:
+        warn: no
+    - name: "check ntpdate"
+      stat:
+        path: "/usr/sbin/ntpdate"
+      register: ntpdate
+    - block:
+        - name: "install ntpdate"
+          yum:
+            name: ntpdate.x86_64
+            state: latest
+        - name: "synchronize time"
+          shell: ntpdate 10.1.41.132
+      when: ntpdate.stat.exists == False
+    - name: "check ntp"
+      stat:
+        path: "/usr/sbin/ntpd"
+      register: ntp
+    - block:
+        - name: "install ntp"
+          yum:
+            name: ntp.x86_64
+            state: latest
+        - name: "set /etc/ntp.conf"
+          shell: sed -i 's/^server/# server/g' /etc/ntp.conf && sed -i '/# server 3/ a server 10.1.41.132' /etc/ntp.conf && systemctl enable ntpd && systemctl start ntpd
+      when: ntp.stat.exists == False
+    
+    

@@ -1,0 +1,39 @@
+---
+- hosts: "{{ group }}"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: "check remote folder /data/web/webapps/{{ webapp }}"
+      file:
+        path: "/data/web/webapps/{{ webapp }}"
+        state: directory
+    - name: "synchronize folders /data/web/webapps/{{ webapp }}"
+      synchronize:
+        src: "/data/web/webapps/{{ webapp }}"
+        dest: "/data/web/webapps/"
+    - name: "grant excution permission"
+      shell: find /data/web/webapps/ -name "*.sh" -exec chmod +x {} \;
+    - name: "ensure crontab job for webapp [{{ webapp }}]"
+      cron:
+        name: "webapp [{{ webapp }}]"
+        minute: "*/1"
+        job: "/data/web/webapps/{{ webapp }}/{{ deamon }} >> /data/web/webapps/{{ webapp }}/logs/{{ log }} 2>&1"
+      when: deamon is defined and log is defined
+    - block:
+        - name: "check /data/web/webapps/{{ webapp }}/{{ stop }}"
+          stat:
+            path: "/data/web/webapps/{{ webapp }}/{{ stop }}"
+          register: stop_shell
+        - name: "restart /data/web/webapps/{{ webapp }}"
+          shell: "/usr/local/bin/server_reload.sh /data/web/webapps/{{ webapp }}/{{ stop }} 30"
+          when: stop_shell.stat.exists
+      when: deamon is defined and stop is defined
+    - block:
+        - name: "check /data/web/webapps/{{ webapp }}/bin/restart.sh"
+          stat:
+            path: "/data/web/webapps/{{ webapp }}/bin/restart.sh"
+          register: restart_shell
+        - name: "restart /data/web/webapps/{{ webapp }}"
+          shell: "/data/web/webapps/{{ webapp }}/bin/restart.sh"
+          when: restart_shell.stat.exists
+      when: deamon is undefined

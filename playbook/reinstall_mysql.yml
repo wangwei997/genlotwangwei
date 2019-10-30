@@ -1,0 +1,16 @@
+---
+- hosts: "mysql_sharding_slave"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: "synchronize install-package"
+      synchronize:
+        src: "/data/ansible/install/"
+        dest: "/data/temp/install/"
+        delete: yes
+    - name: "grant excution permission"
+      shell: find /data/temp/install/ -name "*.sh" -exec chmod +x {} \;
+    - name: "install mysql"
+      shell: /data/temp/install/install.mysql.sh > /data/temp/install.mysql.log
+    - debug:
+        msg: "finish"

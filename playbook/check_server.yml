@@ -1,0 +1,25 @@
+---
+- hosts: "{{ type }}"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: "synchronize install-package"
+      synchronize:
+        src: "/data/ansible/install/"
+        dest: "/data/temp/install/"
+        delete: yes
+    - name: "grant excution permission"
+      shell: find /data/temp/install/ -name "*.sh" -exec chmod +x {} \;
+    - block:
+        - name: "rebooting"
+          reboot:
+            reboot_timeout: 600
+          register: reboot
+        - debug:
+            var: reboot
+      when: reboot is defined
+    - name: check status
+      shell: /data/temp/install/check.status.sh 1
+      register: status
+    - debug:
+        msg: "{{ status.stdout_lines }}"

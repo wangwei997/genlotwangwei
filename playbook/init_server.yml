@@ -1,0 +1,60 @@
+---
+- hosts: "{{ type }}"
+  gather_facts: False
+  remote_user: root
+  vars:
+    types: [java, mysql, lvs, nginx, redis, zookeeper, elasticsearch]
+  tasks:
+    - name: "make sure /data/temp"
+      file:
+        path: "/data/temp"
+        state: directory
+    - name: "prepare install-package"
+      synchronize:
+        src: "/data/ansible/install/"
+        dest: "/data/temp/install/"
+        delete: yes
+    - name: "grant excution permission"
+      shell: find /data/temp/install/ -name "*.sh" -exec chmod +x {} \;
+    - block: 
+        # 检测是否完成初始化, 外部需制定完成标识 {{ type }}：java|mysql|lvs|nginx|redis
+        - name: "check server status"
+          stat:
+            path: "/root/.server_init/init_{{ type }}_finished"
+          register: finished
+        # 未发现标识时，推送初始化脚本，并执行此脚本
+        - block:
+            - name: "synchronize init shell : init.{{ type }}.sh to remote /data/temp"
+              synchronize:
+                src: "/data/ansible/setup/scripts/init.{{ type }}.sh"
+                dest: "/data/temp/"
+            - name: "excute remote /data/temp/init.{{ type }}.sh"
+              shell: "chmod +x /data/temp/init.{{ type }}.sh && /data/temp/init.{{ type }}.sh > /data/temp/init.{{ type }}.log"
+              # shell: "chmod +x /data/temp/init.{{ type }}.sh"
+              args:
+                warn: no
+            - block:
+                - name: "reboot"
+                  reboot:
+                    reboot_timeout: 600
+                  register: reboot
+                - debug:
+                    var: reboot
+              when: reboot is defined
+            - debug:
+                msg: "Server[{{ type }}] initialed"
+            - name: check status
+              shell: /data/temp/install/check.status.sh 1
+              register: status
+            - debug:
+                msg: "{{ status.stdout_lines }}"
+          when: finished.stat.exists == False
+        - block:
+            - debug:
+                msg: "Server[{{ type }}] has alread been initialed"
+              notify: check status
+          when: finished.stat.exists == True
+      when: type in types
+    - debug:
+        msg: "unsupported init type: {{ type }}"
+      when: type not in types

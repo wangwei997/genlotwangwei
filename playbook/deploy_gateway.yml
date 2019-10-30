@@ -1,0 +1,40 @@
+---
+- hosts: "{{ group }}"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: "check remote folder /data/web/gateways/{{ gateway }}"
+      file:
+        path: "/data/web/gateways/{{ gateway }}"
+        state: directory
+    - name: "synchronize folders /data/web/gateways/{{ gateway }}"
+      synchronize:
+        src: "/data/web/gateways/{{ gateway }}/"
+        dest: "/data/web/gateways/{{ gateway }}/"
+        delete: yes
+    - name: "grant excution permission"
+      shell: find /data/web/gateways/ -name "*.sh" -exec chmod +x {} \;
+    - name: "ensure crontab job for gateway [{{ gateway }}]"
+      cron:
+        name: "gateway [{{ gateway }}]"
+        minute: "*/1"
+        job: "/data/web/gateways/{{ gateway }}/{{ deamon }} >> /data/web/gateways/{{ gateway }}/logs/{{ log }} 2>&1"
+      when: deamon is defined and log is defined
+    - block:
+        - name: "check /data/web/gateways/{{ gateway }}/{{ stop }}"
+          stat:
+            path: "/data/web/gateways/{{ gateway }}/{{ stop }}"
+          register: stop_shell
+        - name: "restart /data/web/gateways/{{ gateway }}"
+          shell: "/usr/local/bin/server_reload.sh /data/web/gateways/{{ gateway }}/{{ stop }} 30"
+          when: stop_shell.stat.exists
+      when: deamon is defined and stop is defined
+    - block:
+        - name: "check /data/web/gateways/{{ gateway }}/bin/restart.sh"
+          stat:
+            path: "/data/web/gateways/{{ gateway }}/bin/restart.sh"
+          register: restart_shell
+        - name: "restart /data/web/gateways/{{ gateway }}"
+          shell: "/data/web/gateways/{{ gateway }}/bin/restart.sh"
+          when: restart_shell.stat.exists
+      when: deamon is undefined

@@ -1,0 +1,21 @@
+---
+- hosts: "{{ group }}"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: "make sure /data/temp"
+      file:
+        path: "/data/temp"
+        state: directory
+    - name: "synchronize install-package"
+      synchronize:
+        src: "/data/ansible/install/"
+        dest: "/data/temp/install/"
+        delete: yes
+    - name: "grant excution permission"
+      shell: find /data/temp/install/ -name "*.sh" -exec chmod +x {} \;
+    - name: run shell [{{ shell }}]
+      shell: "{{ shell }}"
+      register: status
+    - debug:
+        msg: "{{ status.stdout_lines }}"

@@ -1,0 +1,13 @@
+---
+- hosts: "{{ group }}"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: "synchronize folders /data/ansible/install/tools/"
+      synchronize:
+        src: "/data/ansible/install/tools/"
+        dest: "/usr/local/bin/"
+    - name: "grant excution permission"
+      shell: cd /usr/local/bin && chmod +x ctail server_reload.sh update.web.sh
+      args:
+        warn: no

@@ -1,0 +1,23 @@
+---
+- hosts: "{{ group }}"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: "check remote folder /data/web/services/{{ service }}"
+      file:
+        path: "/data/web/services/{{ service }}"
+        state: directory
+    - name: "synchronize folders /data/web/services/{{ service }}"
+      synchronize:
+        src: "/data/web/services/{{ service }}/"
+        dest: "/data/web/services/{{ service }}/"
+        delete: yes
+    - name: "grant excution permission"
+      shell: find /data/web/services/ -name "*.sh" -exec chmod +x {} \;
+    - name: "check /data/web/services/{{ service }}/bin/restart.sh"
+      stat:
+        path: "/data/web/services/{{ service }}/bin/restart.sh"
+      register: restart_shell
+    - name: "restart /data/web/services/{{ service }}"
+      shell: "/data/web/services/{{ service }}/bin/restart.sh"
+      when: restart_shell.stat.exists

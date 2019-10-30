@@ -1,0 +1,24 @@
+---
+- hosts: "{{ group }}"
+  gather_facts: False
+  remote_user: root
+  tasks:
+    - name: remove all repository
+      shell: find /etc/yum.repos.d/ -type f -exec rm -f {} \;
+    - name: add yum repository
+      yum_repository:
+        name: rhel-7.6
+        description: rhel-7.6
+        file: rhel-7.6
+        baseurl: ftp://192.168.0.204/pub/yum/
+        gpgcheck: no
+        enabled: yes
+    - name: "check rsync"
+      stat:
+        path: "/usr/bin/rsync"
+      register: rsync
+    - name: "install rsync"
+      yum:
+        name: rsync.x86_64
+        state: latest
+      when: rsync.stat.exists == False
